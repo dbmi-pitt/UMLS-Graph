@@ -2,13 +2,18 @@
 
 SCRIPTS TO EXTRACT FROM NEPTUNE UMLS Relational and LOAD to UMLS Graph (using neo4j-community-3.3.1-unix.tar) - JCS Nov 30, 2017 - Dec 7, 2017
 
-## V2: Dec 16, 2017 - V2 Used the principle of creating a concise database that accounts for TTY. "SELECT DISTINCT" was used liberally (even where it was not needed, because of unique IDs in UMLS). For convenience, we allow to relationships fail on import, if the connecting nodes don't exist, due to leveraging the --ignore-missing-nodes flag.
+## V2: Dec 16, 2017 - V2 Used the principle of creating a concise database that accounts for TTY.
+"SELECT DISTINCT" was used liberally (even where it was not needed, because of unique IDs in UMLS). For convenience, we allow to relationships fail on import, if the connecting nodes don't exist, due to leveraging the --ignore-missing-nodes flag.
 
 ### Extract TUI-nodes and save as TUIs.csv (with header):
+```SQL
 SELECT DISTINCT UI as "TUI:ID", STY_RL as "name", STN_RTN as "STN", DEF from UMLS.SRDEF where RT = 'STY';
+```
 
-Extract TUI-relationships (only ISA_STY among TUI-nodes which is TUI: T186) and save as TUIrel.csv (with header):
+### Extract TUI-relationships (only ISA_STY among TUI-nodes which is TUI: T186) and save as TUIrel.csv (with header):
+```SQL
 WITH Semantics as (SELECT DISTINCT UI from UMLS.SRDEF WHERE RT = 'STY') SELECT DISTINCT UI3 as ":END_ID", UI1 as ":START_ID" FROM UMLS.SRSTRE1 INNER JOIN Semantics ON UMLS.SRSTRE1.UI1 = Semantics.UI WHERE UI2 = 'T186';
+```
 
 Extract Concept-nodes as CUIs.csv (with header). Notes: this would select unique CUIs even without distinct because there is only one English Preferred Term (but DISTINCT is used as "assurance for future versions of UMLS having integrity"). Surprisingly, some English Preferred Terms are listed in Obsolete AUIs, so SUPPRESS <> 'O' is not used here. This query is then used by other queries that generate Nodes (Codes, Terms, Definitions) to limit those queries to result in nodes that are connected to these concepts (via AUIs). :
 SELECT DISTINCT CUI as "CUI:ID" from UMLS.MRCONSO where UMLS.MRCONSO.ISPREF = 'Y' AND UMLS.MRCONSO.STT = 'PF' AND UMLS.MRCONSO.TS = 'P' and UMLS.MRCONSO.LAT = 'ENG';
