@@ -66,7 +66,8 @@ With CUIlist as (SELECT DISTINCT CUI from UMLS.MRCONSO where UMLS.MRCONSO.ISPREF
 SELECT DISTINCT ATUI as ":END_ID", CUI as ":START_ID" from UMLS.MRDEF where SUPPRESS <> 'O';
 ```
 
-### Extract RXNORM NDC-nodes and save as NDCs.csv (with header). Note: this extraction script does not check for the existence of the RXNORM CODE it will relate to (this could leave some "isolated" NDCs because relationships are designed to "silently fail"):
+### Extract RXNORM NDC-nodes and save as NDCs.csv (with header):
+Note: This extraction script does not check for the existence of the RXNORM CODE it will relate to (this could leave some "isolated" NDCs because relationships are designed to "silently fail").
 ```SQL
 SELECT DISTINCT ATUI as "ATUI:ID", ATV as "NDC" from UMLS.MRSAT where SAB = 'RXNORM' and ATN = 'NDC' and SUPPRESS <> 'O';
 ```
