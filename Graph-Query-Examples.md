@@ -51,7 +51,7 @@ WITH e,h,i,j,k,t MATCH (i:Concept)-[:PREF_TERM]->(u:Term)
 RETURN DISTINCT t.name AS CUI1_PREF_TERM, h.SAB AS SAB_REL, Type(h) AS RELATION, u.name AS CUI2_PREF_TERM, Type(j) as TTY, k.SAB as SAB, k.CODE as CODE, k.CodeID as SAB_CODE
 ```
 
-### Find Codes from Text Contained in Ancestral Concept's Terms (and Descendants from all sources):
+### Find Codes from Text Contained in Concept's Terms and Report Descendants from all sources:
 ```cypher
 MATCH (a:Term)<-[b]-(c:Code)<-[d]-(e:Concept)
 WHERE a.name CONTAINS "Synercid" AND Type(b) = Type(d)
