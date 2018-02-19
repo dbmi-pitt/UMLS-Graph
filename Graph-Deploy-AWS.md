@@ -9,7 +9,7 @@ IF MAKING A NEW EC2 (updating an existing instance may not need to do) for neo4j
 After you launch your instance using “YourKeyPair.pem” you’ll need to do all this, but note the public IP references in commands will be different numbers.
 
 ```bash
-sftp -i ~/Desktop/YourKeyPair.pem ec2-user@eec2-54-205-5-136.compute-1.amazonaws.com
+sftp -i ~/Desktop/YourKeyPair.pem ec2-user@ec2-54-205-5-136.compute-1.amazonaws.com
 put neo4j.tar.gz
 ```
 
