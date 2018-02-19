@@ -14,16 +14,16 @@ put neo4j.tar.gz
 ```
 
 ```bash
+ssh -i ~/Desktop/YourKeyPair.pem ec2-user@ec2-54-205-5-136.compute-1.amazonaws.com
+mkdir neo4j
+tar -xvzf neo4j.tar.gz -C neo4j
+```
+
+```bash
 [ec2-user]$ sudo yum update -y
 [ec2-user]$ sudo yum install -y docker
 [ec2-user]$ sudo service docker start
 [ec2-user]$ sudo docker info
-```
-
-```bash
-ssh -i ~/Desktop/YourKeyPair.pem ec2-user@ec2-54-205-5-136.compute-1.amazonaws.com
-mkdir neo4j
-tar -xvzf neo4j.tar.gz -C neo4j
 ```
 
 ```bash
