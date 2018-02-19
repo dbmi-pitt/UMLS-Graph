@@ -1,6 +1,8 @@
 # UMLS-Graph
 
-SCRIPTS TO EXTRACT FROM NEPTUNE UMLS Relational and LOAD to UMLS Graph (using neo4j-community-3.3.1-unix.tar) - JCS Nov 30, 2017 - Dec 7, 2017
+SCRIPTS TO EXTRACT FROM NEPTUNE UMLS Relational and LOAD to UMLS Graph (using neo4j-community-3.3.3-unix.tar) - JCS Nov 30, 2017 - Feb 19, 2018
+
+## V3: Feb 19, 2018 - V3 Updated to neo4j 3.3.3 and added Term .name_lc for case in-sensitive search
 
 ## V2: Dec 16, 2017 - V2 Used the principle of creating a concise database that accounts for TTY.
 "SELECT DISTINCT" was used liberally (even where it was not needed, because of unique IDs in UMLS). For convenience, we allow to relationships fail on import, if the connecting nodes don't exist, due to leveraging the --ignore-missing-nodes flag.
