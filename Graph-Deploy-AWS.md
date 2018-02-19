@@ -1,6 +1,11 @@
 # Graph-Deploy-AWS
 
-IF MAKING A NEW EC2 (updating an existing instance my not need to do) for neo4j database do this:
+Once you have a working database on Mac, go up one directory in Terminal and compress the neo4j-community-3.3.3 directory:
+```bash
+tar -cvzf neo4j.tar.gz neo4j-community-3.3.3
+```
+
+IF MAKING A NEW EC2 (updating an existing instance may not need to do) for neo4j database do this:
 After you launch your instance using “YourKeyPair.pem” you’ll need to do all this, but note the public IP references in commands will be different numbers.
 
 ```bash
