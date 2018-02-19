@@ -102,7 +102,7 @@ Imported:
 bin/neo4j start
 ```
 
-#### SET CONSTRAINTS and INDEXES on everything (these were each run as a single line and response confirms success):
+#### SET CONSTRAINTS and INDEXES on everything (these must each be run in the bolt interface as a single line and response confirms success):
 ```cypher
 CREATE CONSTRAINT ON (n:Semantic) ASSERT n.TUI IS UNIQUE
 CREATE CONSTRAINT ON (n:Semantic) ASSERT n.STN IS UNIQUE
@@ -114,6 +114,7 @@ CREATE INDEX ON :Code(SAB)
 CREATE INDEX ON :Code(CODE)
 CREATE CONSTRAINT ON (n:Term) ASSERT n.SUI IS UNIQUE
 CREATE CONSTRAINT ON (n:Term) ASSERT n.name IS UNIQUE
+CREATE INDEX ON :Term(name_lc)
 CREATE CONSTRAINT ON (n:Definition) ASSERT n.ATUI IS UNIQUE
 CREATE INDEX ON :Definition(SAB)
 CREATE INDEX ON :Definition(DEF)
