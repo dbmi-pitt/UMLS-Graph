@@ -33,7 +33,7 @@ sudo docker run --detach \
 --volume=/home/ec2-user/neo4j/neo4j-community-3.3.3/conf/:/var/lib/neo4j/conf/ \
 --ulimit=nofile=40000:40000 \
 --name=myneo4j \
-neo4j:3.3
+neo4j
 ```
 
 More useful options here: https://neo4j.com/developer/docker-23/
