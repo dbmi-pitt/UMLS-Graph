@@ -1,6 +1,8 @@
 # UMLS-Graph
 
-SCRIPTS TO EXTRACT FROM NEPTUNE UMLS Relational and LOAD to UMLS Graph (using neo4j-community-3.3.3-unix.tar) - JCS Nov 30, 2017 - Feb 19, 2018
+SCRIPTS TO EXTRACT FROM NEPTUNE UMLS Relational and LOAD to UMLS Graph (using neo4j-community-3.5.5-unix.tar) - JCS Nov 30, 2017 - May 07, 2019
+
+## V4: May 07, 2019 - Updated to neo4j 3.5.5 and UMLS2019AA
 
 ## V3: Feb 19, 2018 - V3 Updated to neo4j 3.3.3 and added Term .name_lc for case in-sensitive search
 
