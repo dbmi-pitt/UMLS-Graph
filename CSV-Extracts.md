@@ -92,7 +92,7 @@ rm -rf data/*
 bin/neo4j-admin import --nodes:Semantic "import/TUIs.csv" --nodes:Concept "import/CUIs.csv" --nodes:Code "import/CODEs.csv" --nodes:Term "import/SUIs.csv" --nodes:Definition "import/DEFs.csv" --nodes:NDC "import/NDCs.csv" --relationships:ISA_STY "import/TUIrel.csv" --relationships:STY "import/CUI-TUIs.csv" --relationships "import/CUI-CUIs.csv" --relationships "import/CUI-CODEs.csv" --relationships "import/CODE-SUIs.csv" --relationships:PREF_TERM "import/CUI-SUIs.csv" --relationships:DEF "import/DEFrel.csv" --relationships:NDC "import/NDCrel.csv" --ignore-missing-nodes
 ```
 
-#### At this point, after much load feedback a clean load should show something like the following:
+#### At this point, after much load feedback a clean load should show something like the following (due to --ignore-missing-nodes there will be a note about bad entries skipped and an import.report but this can be ignored):
 IMPORT DONE in 3m 9s 34ms. 
 Imported:
   16226447 nodes
