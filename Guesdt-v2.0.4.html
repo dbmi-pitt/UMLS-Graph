@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+  .node {
+    cursor: pointer;
+  }
+
+  .node circle {
+    fill: #fff;
+    stroke: steelblue;
+    stroke-width: 1.5px;
+  }
+
+  .node text {
+    font: 12px sans-serif;
+  }
+
+  .link {
+    fill: none;
+    stroke: #ccc;
+    stroke-width: 1.5px;
+  }
+
+  .link2 {
+    fill: none;
+    stroke: steelblue;
+    stroke-width: 1.5px;
+  }
+
+  div.tooltip {
+  z-index: 1;
+  position: absolute;
+  text-align: left;
+  width: 250px;
+  height: 250px;
+  padding: 5px;
+  font: 12px sans-serif;
+  background: lightsteelblue;
+  border: 1px #ccc solid;
+  border-radius: 8px;
+  box-shadow: #333 2px 2px 4px;
+  padding: 8px;
+  pointer-events: none;
+  overflow: scroll;
+}
+
+.popup {
+    position: absolute;
+    left: 0;
+    top: 0;
+    text-align: left;
+    width: 400px;
+    height: 600px;
+    font: 12px sans-serif;
+    background: lightsteelblue;
+    border: 1px #ccc solid;
+    border-radius: 8px;
+    box-shadow: #333 2px 2px 4px;
+    padding: 8px;
+}
+
+div.thecodedisplaydiv {
+  overflow: scroll;
+  word-wrap: break-word;
+  height: 480px;
+}
+
+.result {
+  margin: 0;
+  padding: 0;
+  background-color: white;
+  overflow-x: scroll;
+  white-space: nowrap;
+  text-align: left;
+  font: 11px sans-serif;
+}
+
+td {
+  padding: 0;
+  margin: 0;
+}
+
+tr:nth-child(odd) {
+  background-color: rgb(222,222,222);
+}
+
+tr:nth-child(even) {
+  background-color: rgb(193, 213, 244);
+}
+
+body {
+  overflow:hidden;
+}
+
+</style>
+<body>
+<script src="https://d3js.org/d3.v5.min.js"></script>
+  <script>
+// Guesdt.html Version 2.0.4 Copyright 2017-2019 DBMI, University of Pittsburgh, license changed 7/31/2019 to BSD, see repository at: https://github.com/dbmi-pitt/UMLS-Graph for license details.
+    // BEGIN Setup and Initialization
+
+    function Guesdt (eJSON, callback) {
+      d3.request("https://xpfhunyxth.execute-api.us-east-1.amazonaws.com/prod/graph")
+        .header("x-api-key", sessionStorage['Key'])
+        .header("Content-Type", "application/json")
+        .header("Accept", "application/json; charset=UTF-8")
+        .header("Authorization", "Basic QW83bXRYNTpZaTZwVDd1RWFxYjQK") // this is a fake authorization token - gets replaced by API Gateway
+        .send("POST", eJSON, function(error, data) { callback(error, data); })
+        .response(function(xhr) { return xhr.responseText });
+    }
+    
+    // declares a tree layout and sets the display height and width of each node 
+    var nodeheight = 18,
+    nodewidth = 400;
+    var tree = d3.tree()
+    	.nodeSize([nodeheight, nodewidth]);
+
+    // declare a div to use as tooltip
+  	var div = d3.select("body").append("div")
+    	.attr("class", "tooltip")
+    	.style("opacity", 0);
+
+    // set various visualization parameters and initiate the svg, zoom, etc.
+    var i = 0, j = 0, k = 0,
+    duration = 100, 
+    current = d3.zoomIdentity,
+    smallTree,
+    root;
+    MANY = 64;
+
+    var w = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+    var h = window.innerHeight  || document.documentElement.clientHeight  || document.body.clientHeight;
+
+    var svg = d3.select("body").append("svg")
+    .attr("width", w)
+    .attr("height", h);
+
+    var zoom = svg.call(d3.zoom()
+      .scaleExtent([1 / 20, 10])
+      .on("zoom", zoomed));
+
+    var g = svg.append("g");
+
+    function zoomed() {
+      current = d3.event.transform;
+      //current.k = 1;
+      g.attr("transform",current);
+    }
+
+    // handles passing ONLY CodeID in URL e.g. http;//.....html?CodeID=SNOMEDCT_US 138875005)
+    CodeIDinURL = false;
+    var param = decodeURIComponent(location.search.slice(1)).split('#')[0];
+    if (param.indexOf('CodeID=') > -1)  {
+      param = param.split('CodeID=')[1];
+      if (param.indexOf(' ') > -1)  {
+        vocab = param.split(' ')[0];
+        code = param;
+        CodeIDinURL = true;
+      }
+    };
+    if (CodeIDinURL == false) {
+        code = "SNOMEDCT_US 138875005"; // hard code default start path - top of SNOMED tree
+        vocab = vocabFROMcode(code);      
+    };
+
+    function vocabFROMcode(code) {
+      vocab = code.substring(0, code.indexOf(" "));
+      return vocab;
+    } 
+
+    function codeFROMcode(code) {
+      thecode = code.substring(code.indexOf(" ")+1,code.length);
+      return thecode;
+    }
+
+    function Term2Codes() {
+      thetermrequest = document.getElementById('theterm').value;
+      if (thetermrequest == "") {return;};
+      namefield = "name";
+      if (document.getElementById('Case').checked == false) {thetermrequest = thetermrequest.toLowerCase();namefield = "name_lc"};
+      var q = d3.queue();  
+
+      if (document.getElementById('Csynonym').checked == true) {
+
+       q.defer(Guesdt,
+          '{ "statements" : [ { "statement" : "match (:Term{name_lc:toLower(\'' + thetermrequest + '\')})--(g:Code) with g match (g:Code)--(f:Concept) with g,collect(distinct(f)) as x where size(x) = 1 with g,x unwind x as p with p match (p:Concept)--(e:Code) with e match (e:Code)--(h:Concept) with e,collect(distinct(h)) as y where size(y) = 1 match (e:Code)--(t:Term) return distinct(t.name) as termTerms UNION match (:Term{name_lc:toLower(\'' + thetermrequest + '\')})--(g:Code) with g match (g:Code)--(f:Concept) with g,collect(distinct(f)) as x where size(x) = 1 with g,x unwind x as p with p match (p:Concept)-[:PREF_TERM]-(t:Term) return distinct(t.name) as termTerms UNION match (t:Term{name_lc:toLower(\'' + thetermrequest + '\')})-[:PREF_TERM]-(:Concept) return distinct(t.name) as termTerms UNION match (t:Term{name_lc:toLower(\'' + thetermrequest + '\')})-[:PREF_TERM]-(p:Concept) with p match (p:Concept)--(e:Code) with e match (e:Code)--(h:Concept) with e,collect(distinct(h)) as y where size(y) = 1 match (e:Code)--(t:Term) return distinct(t.name) as termTerms" } ]}'
+          )
+      q.awaitAll(function(error, data) {
+        if (error) throw error; 
+        data = JSON.parse(data);  
+        data = data.results[0].data;
+        if (data.length == 30000) {alert("Term->Codes was limited to the first 30000 results.")};
+        thetotaltext = data.length + " The following Terms are Concept Synonyms with " + thetermrequest + ".<br><br><table class='result'>";
+        data.forEach(function(item) {
+         if (thetotaltext.indexOf(item.row[0]) == -1) { // code is not in already
+          thetotaltext = thetotaltext + "<tr><td onclick='document.getElementById(`theterm`).value=this.innerHTML;document.getElementById(`theterm`).focus();'>"+item.row[0]+"</td></tr>";
+         }
+        });
+        document.getElementById('thecodedisplay').innerHTML = thetotaltext + "</table>" + "<br>Searched: " + namefield;
+      });       
+
+      } else {
+      q.defer(Guesdt,
+      		'{ "statements" : [ { "statement" : "MATCH (a:Term)<--(c:Code) WHERE a.'+namefield+' CONTAINS \''+thetermrequest+'\' RETURN DISTINCT c.SAB AS SAB, c.CODE as CODE, a.name as PREF_TERM ORDER by size(a.name), SAB LIMIT 30000" } ]}'
+      		)
+      q.awaitAll(function(error, data) {
+        if (error) throw error; 
+        data = JSON.parse(data);  
+      	data = data.results[0].data;
+        if (data.length == 30000) {alert("Term->Codes was limited to the first 30000 results.")};
+        thetotaltext = data.length + " Terms from the following Code(s) CONTAIN:<br>" + thetermrequest + "<br><br><table class='result'>";
+        data.forEach(function(item) {
+         if (thetotaltext.indexOf(item.row[0]+" "+item.row[1]) == -1) { // code is not in already
+          thetotaltext = thetotaltext + "<tr><td onclick='document.getElementById(`thecode`).value=this.innerHTML;document.getElementById(`thecode`).focus();'>"+item.row[0]+" "+item.row[1]+"</td> <td onclick='document.getElementById(`theterm`).value=this.innerHTML;document.getElementById(`theterm`).focus();'>"+item.row[2]+"</td></tr>";
+         }
+        });
+        document.getElementById('thecodedisplay').innerHTML = thetotaltext + "</table>" + "<br>Searched: " + namefield;
+      });
+      }
+    }
+
+    function Code2Terms() {
+      theCodeID = document.getElementById('thecode').value;
+      if (theCodeID == "") {return;};
+      thevocab = vocabFROMcode(document.getElementById('thecode').value);
+      thecode = codeFROMcode(document.getElementById('thecode').value);
+      if (document.getElementById('Desc').checked == true) {
+        d3.queue()
+        .defer(Guesdt,
+            '{ "statements" : [ { "statement" : "MATCH (c:Code{CodeID:\''+theCodeID+'\'})<--(e:Concept) WITH c,e MATCH p = ((e:Concept)-[:`inverse_isa PAR`|`inverse_isa RB`|` PAR`*0..5]->(l:Concept)) WITH c,l,p MATCH (n:Code)<--(l:Concept)-[:PREF_TERM]->(v:Term) where n.SAB = c.SAB and ALL (y IN relationships(p) WHERE y.SAB = c.SAB) RETURN DISTINCT n.SAB AS SAB, n.CODE as CODE, v.name as TERM order by SAB, CODE asc LIMIT 30000" } ]}'
+          )
+        .awaitAll(function(error, data) {
+          if (error) throw error; 
+          data = JSON.parse(data);
+          data=data.results[0].data;
+          if (data.length == 30000) {alert("Code->Terms was limited to the first 30000 results.")};
+          csvcodes = "";
+          thetotaltext = "The Code, Code(s) that share its direct Concept(s) or five generation isa Descendants of its Concept(s), all in the same source:<br><br><table class='result'>";
+          data.forEach(function(item) {
+            if (thetotaltext.indexOf(item.row[0]+" "+item.row[1]) == -1) { // code is not in already
+            csvcodes = csvcodes + "\"" + item.row[1] + "\",";
+            thetotaltext = thetotaltext + "<tr><td onclick='document.getElementById(`thecode`).value=this.innerHTML;document.getElementById(`thecode`).focus();'>"+item.row[0]+" "+item.row[1]+"</td><td onclick='document.getElementById(`theterm`).value=this.innerHTML;document.getElementById(`theterm`).focus();'>"+item.row[2]+"</td></tr>";
+            }
+          });
+          codelist = csvcodes.substring(0, (csvcodes.length - 1));
+          document.getElementById('thecodedisplay').innerHTML = thetotaltext + "</table>"
+          + "<br /> CSV style list of Code(s) and Descendant Code(s):<br><input type='text' value='" + codelist + "' id='myInput' size='33'>";
+          document.getElementById("myInput").select();
+        });
+      } else {
+        var q = d3.queue();        
+        if (document.getElementById('Csynonym').checked == true) {
+        q.defer(Guesdt,
+            '{ "statements" : [ { "statement" : "MATCH (:Code{CodeID:\''+theCodeID+'\'})<--(x:Concept) WITH x MATCH (x:Concept)-[a]->(b:Code)-[c]->(d:Term) where Type(a) = Type(c) return distinct b.SAB AS SAB, b.CODE as CODE, d.name as TERM order by TERM asc LIMIT 30000" } ]}'
+          )
+        } else {
+        q.defer(Guesdt,
+        		'{ "statements" : [ { "statement" : "MATCH (:Code{CodeID:\''+theCodeID+'\'})<--(x:Concept) WITH x MATCH (x:Concept)-[a]->(b:Code{SAB:\''+thevocab+'\'})-[c]->(d:Term) where Type(a) = Type(c) return distinct b.SAB AS SAB, b.CODE as CODE, d.name as TERM order by TERM asc LIMIT 30000" } ]}'
+      		)
+        }
+        q.awaitAll(function(error, data) {
+          if (error) throw error; 
+          data = JSON.parse(data);
+          data=data.results[0].data;
+          if (data.length == 30000) {alert("Code->Terms was limited to the first 30000 results.")};
+
+           //       csvcodes ="";
+         //   csvcodes = csvcodes + "\"" + item.row[1] + "\",";
+
+          thetotaltext = data.length + " Terms of the same Code or Concept";
+          if (document.getElementById('Csynonym').checked == false) {
+            thetotaltext = thetotaltext + " in the same source";
+          }
+          thetotaltext = thetotaltext + ":<br><br><table class='result'>";
+          data.forEach(function(item) {
+            thetotaltext = thetotaltext + "<tr><td onclick='document.getElementById(`thecode`).value=this.innerHTML;document.getElementById(`thecode`).focus();'>"+item.row[0]+" "+item.row[1]+"</td><td onclick='document.getElementById(`theterm`).value=this.innerHTML;document.getElementById(`theterm`).focus();'>"+item.row[2]+"</td></tr>";
+          });
+          document.getElementById('thecodedisplay').innerHTML = thetotaltext + "</table>"
+          + "<br />" +
+          "<a rel='license' href='http://creativecommons.org/licenses/by/4.0/'><img alt='Creative Commons License' style='border-width:0' src='https://i.creativecommons.org/l/by/4.0/80x15.png' /></a><span xmlns:dct='http://purl.org/dc/terms/' property='dct:title'> Guesdt</span> by <a xmlns:cc='http://creativecommons.org/ns#' href='http://www.computationdoc.com' property='cc:attributionName' rel='cc:attributionURL'>Jonathan C. Silverstein</a> is licensed under a <a rel='license' href='http://creativecommons.org/licenses/by/4.0/''>Creative Commons Attribution 4.0 International License</a>. Based on a work at <a xmlns:dct='http://purl.org/dc/terms/' href='https://d3js.org' rel='dct:source'>https://d3js.org</a>."
+          ;
+        });
+      };
+    }
+
+    // popup setup
+    contextMenuShowing = true;
+    var titleText = "Graphing UMLS Enables Search in Dynamic Trees (Guesdt)";
+    function callpopup(code, term) {
+      popup = d3.select("body")
+          .append("div")
+          .attr("class", "popup")
+          .style("left", "8px")
+          .style("top", "8px");
+      popup.html("&nbsp" + titleText + "&nbsp");
+      popup.append("input")
+        .attr("type","button")
+        .attr("value","Dismiss")
+        .attr("onclick","contextMenuShowing = false; d3.select('.popup').remove();");
+      popup.append("div")
+        .text("-------------------------------------------------------------------------------------------------");
+      popup.append("input")
+        .attr("type","button")
+        .attr("value","Restart tree from selected code")
+        .attr("onclick","window.open(location.pathname + '?CodeID=' + document.getElementById('thecode').value,'_self')");
+      popup.append("input")
+        .attr("type","button")
+        .attr("value","Restart default tree")
+        .attr("onclick","window.open(location.pathname,'_self')");
+      popup.append("input")
+        .attr("type","checkbox")
+        .attr("id","Csynonym")
+      popup.append("a")
+        .text("Csynonym");
+      popup.append("div")
+        .text("-------------------------------------------------------------------------------------------------");
+      popup.append("input")
+        .attr("type","text")
+        .attr("size","33")
+        .attr("value",code)
+        .attr("id","thecode")
+        .attr("onkeypress","if(event.which === 13) {Code2Terms()};");
+      popup.append("input")
+        .attr("type","button")
+        .attr("value","Code->Terms")
+        .attr("onclick","Code2Terms();");
+      popup.append("input")
+        .attr("type","checkbox")
+        .attr("id","Desc")
+      popup.append("a")
+        .text("Desc");
+      popup.append("input")
+        .attr("type","text")
+        .attr("size","33")
+        .attr("value",term)
+        .attr("id","theterm")
+        .attr("onkeypress", "if(event.which === 13) {Term2Codes()};")
+        .attr("autofocus", "true");
+      popup.append("input")
+        .attr("type","button")
+        .attr("value","Term->Codes")
+        .attr("onclick","Term2Codes();");
+      popup.append("input")
+        .attr("type","checkbox")
+        .attr("id","Case")
+      popup.append("a")
+        .text("Case");
+      popup.append("div")
+        .text("-------------------------------------------------------------------------------------------------");
+      popup.append("div")
+        .attr("class", "thecodedisplaydiv")
+        .text("")
+        .attr("id","thecodedisplay");
+    }
+
+    if (CodeIDinURL == false) {
+     callpopup(code,""); 
+	   Code2Terms(); 
+    };
+
+	  // Init vocab (as relation) and code as root of the viz tree and intitiate updating
+	  d3.queue()
+      .defer(Guesdt,
+      		'{ "statements" : [ { "statement" : "MATCH (d:Term)<-[:PREF_TERM]-(a:Concept)-[b]->(c:Code) WHERE c.CodeID = \''+code+'\' RETURN DISTINCT a.CUI as CUI, d.name AS TERM ORDER BY TERM LIMIT 30000" } ]}'
+    		)
+	    .awaitAll(function(error, data) {
+	      if (error) throw error; 
+	      data = JSON.parse(data);
+          data=data.results[0].data;
+	      if (data[0] == undefined) { alert("Selected code in URL is not valid. If you wish to remember the invalid code then select and copy the following: " + code + " . Click Close to restart with default code.");location.href = location.pathname;};
+	      if (data[1] != undefined) {
+	      	cuilist = "";
+	      	i = 0;
+			data.forEach(function(item) {
+				i++;
+				cuilist += "" + i + "\t" + item.row[1] + "\n";
+	      	});
+	      	console.log(cuilist);
+	      	cuichoice = prompt("Selected Code \"" + code + "\" has more than than one Concept. Choose one of its Concepts to start the tree by entering the integer next to that Concept below (long lists continue in console.log):\n" + cuilist,1); 
+	      		if ((Number.isInteger(parseInt(cuichoice,10)) == false) || (cuichoice > Object.keys(data).length) || (cuichoice < 1)) {
+	      			cuichoice = 1;
+	      		};
+	      		data[0] = data[cuichoice - 1];
+	      	};
+
+	       // assign the data to a hierarchy using parent-child relationships
+	       smallTree = {"relation":vocab,"code":code,"cui":data[0].row[0],"term":data[0].row[1],"concept":data[0].row[1],"stys":[],"children": []}
+	       root = d3.hierarchy(smallTree, function(d) {
+	       	return d.children;
+	        });
+	       updateData(root);
+      });
+  // END Setup and Initialization
+
+    function updateData(getData) {
+    	// Collect the list of relations and codes from the current node in all directions
+      nchildren = 0;
+      grandChild = 0;
+      d3.queue()
+      // get all codes with the same CUI from other vocabularies
+      // get all in vocab asserted relations to the CUI 
+      .defer(Guesdt,
+      		'{ "statements" : [ { "statement" : "MATCH (d:Term)<-[:PREF_TERM]-(a:Concept)-[b]->(c:Code) WHERE a.CUI = \''+getData.data.cui+'\' AND c.SAB <> \''+vocabFROMcode(getData.data.code)+'\' RETURN DISTINCT c.SAB as SAB, c.CODE as CODE, d.name AS TERM LIMIT 30000" }, { "statement" : "MATCH (a:Concept)<-[b]-(e:Concept)-[f]->(c:Code) WHERE a.CUI = \''+getData.data.cui+'\' AND b.SAB = \''+vocabFROMcode(getData.data.code)+'\' AND c.SAB = \''+vocabFROMcode(getData.data.code)+'\' WITH b,c,e MATCH (d:Term)<-[:PREF_TERM]-(e:Concept) RETURN DISTINCT Type(b) as RELATIOH, c.SAB as SAB, c.CODE as CODE, e.CUI as CUI, d.name as TERM ORDER BY TERM LIMIT 30000" }  ]}'
+    		)
+      .awaitAll(function(error, data) {
+        if (error) throw error; 
+	    data = JSON.parse(data);
+        thedata = data;
+        data = [];
+        // Assemble the same CUI relations into data array eliminating duplicate SABs
+        SABList = [];
+        thedata.results[0].data.forEach(function(item) {
+        	if (SABList.indexOf(item.row[0]) > -1) {} else {
+            therow = {"relation":item.row[0],"code":item.row[0]+" "+item.row[1],"cui":getData.data.cui,"term":getData.data.concept,"concept":getData.data.concept,"stys":[],"children": []}
+            data.push(therow);
+            nchildren = nchildren + 1;
+            SABList.push(item.row[0])
+        	}
+        });
+        // Assemble the in vocab relations into data array eliminating duplicate CUIs
+        CUIList = [];
+        thedata.results[1].data.forEach(function(item) {
+        	if (CUIList.indexOf(item.row[3]) > -1) {} else {
+            therow = {"relation":item.row[0].toLowerCase().trim(),"code":item.row[1]+" "+item.row[2],"cui":item.row[3],"term":item.row[4],"concept":item.row[4],"stys":[],"children": []}
+            data.push(therow);
+            nchildren = nchildren + 1;
+            CUIList.push(item.row[3])
+        	}
+        });
+
+  		// Here we are not closing the awaitAll statements - we close them at the very end of the whole script
+
+        if (!(getData.children || getData._children || (data.length < 1))) {
+          // put the data in a new small tree 
+          smallTree.children = data;
+          smallTree.children.sort(function(a, b) { return d3.ascending(a.relation+a.term, b.relation+b.term); });
+          smallTree.children.forEach(function(d) {
+            if (d.children) {
+            d.children.sort(function(a, b) { return d3.ascending(a.relation+a.term, b.relation+b.term); });
+            }
+          });
+
+          // assign the new data to a hierarchy using parent-child relationships
+          smallroot = d3.hierarchy(smallTree, function(d) {
+            return d.children;
+          });
+
+          // Graft the new children on to the main hierarchy and identify replica of existing node (same code)
+          getData.children = [];
+          smallroot.descendants().slice(1).forEach(function(d) {
+            d.parent = getData;
+            d.height = 0;
+            d.depth = getData.depth + 1;
+            getData.children.push(d); 
+          });
+          getData.nchildren = nchildren; 
+          getData.height = 1 + grandChild;
+
+          // here we manage replicas via recursive testing all new nodes against all existing
+            getData.descendants().slice(1).forEach(function(d) {
+              if (!d.replicas) { d.replicas = [] }
+              function searchReplicas(s) {
+                if (!s.replicas) { s.replicas = [] }
+                if (s._children) {
+                  s._children.forEach(searchReplicas);
+                } else {
+                  if (s.children) {
+                    s.children.forEach(searchReplicas);
+                  }
+                }
+                // if cui matches another node in same vocabulary that's not itself or a NOCODE (e.g. a MANY node)
+                if ((d.data.cui == s.data.cui) && (vocabFROMcode(d.data.code) == vocabFROMcode(s.data.code)) && !(d == s) && (d.data.code != "NOCODE")) {
+                  // if the matched code is its parent's parent or parent's sibling
+                  if ((getData.parent == s) || (getData.parent == s.parent)) {
+                    d.replicas.push(d); // add it to its own replicas list so it lights up but doesn't draw a line
+                    s.replicas.push(s);
+                  } else {
+                    d.replicas.push(s); // link to existing replica by adding it to replicas list
+                    s.replicas.push(d);
+                  } 
+                }
+              }
+              searchReplicas(root);
+              if ((d.parent == getData) && (d.children)) {d._children = d.children; d.children = null;} // Toggle off MANY children
+            });
+          } // Does this one belong to?:   "if (!(getData.children || getData._children || (data.length < 1))) {""
+
+        update(getData);
+
+        function update(source) {
+          if (!source.y0) {source.y0 = w/2};
+          if (!source.x0) {source.x0 = h/2};  
+
+        // Assign the x and y position for the nodes
+        var treeMap = tree(root);
+
+        // Compute the new tree layout (the list of visible nodes, using the new x and y positions)
+        var nodes = treeMap.descendants(),
+        // links is just the list of nodes except for the root 
+        links = treeMap.descendants().slice(1);
+
+        // Adjust the source node to center accounting for "current" which is the active zoom event transform.
+        // Done empirically - it seems relative coordinates need no scaling but absolute ones need scaling.
+        var adjustx = source.x - root.x, 
+        adjusty = source.y - root.y;
+        nodes.forEach(function(d) {
+          d.x = d.x - adjustx - current.y/current.k + h/2/current.k;
+          d.y = d.y - adjusty - current.x/current.k + w/2/current.k;
+        });
+
+        // Update the nodes
+        var node = g.selectAll("g.node")
+        .data(nodes, function(d) { return d.id || (d.id = ++i); });
+
+        // Enter any new nodes at the parent's previous position.
+        var nodeEnter = node.enter().append("g")
+        .attr("class", "node")
+        .attr("transform", function(d) { return "translate(" + source.y0 + "," + source.x0 + ")"; }) //;
+        .on("mouseover", function(d) {
+          // log where mouse is when getting this event and "pin it" to left lower if negative values
+          divX = Math.max(d3.event.pageX,400);
+          divY = Math.min(d3.event.pageY,h-300);
+          // need the parent term for display, but to avoid undefined error for root node, set theParent text to empty string
+          if (d.parent == undefined) {theParent = ""} else {theParent = d.parent.data.term};
+          if (d.data.stys == "") {
+            // Get the symantic types and display them
+            d3.queue()
+            .defer(Guesdt, 
+      			'{ "statements" : [ { "statement" : "MATCH (a:Concept)-->(c:Semantic) WHERE a.CUI = \''+d.data.cui+'\' RETURN DISTINCT c.name as STY LIMIT 30000" } ]}'
+      			)
+            .awaitAll(function(error, data) {
+              if (error) throw error; 
+              data = JSON.parse(data);
+              d.data.stys = [];
+              data.results[0].data.forEach(function(item) {
+                d.data.stys.push(item.row[0]);
+              })
+              div.html("Pref_Term: "+d.data.term + "<br/>" + "Relation: "+d.data.relation + "<br>" + "'Parent': "+theParent + "<br>" + "Code: "+d.data.code + "<br/>" + "CUI: "+d.data.cui + "<br/>" + "SemanticTypes: "+d.data.stys + "<br/>" + "'Children': "+d.nchildren).style("left", (divX - nodewidth) + "px").style("top", (divY) + "px").style("opacity", .85);  
+            });
+          } else {
+          // Already have the info so just display it
+          div.html("Pref_Term: "+d.data.term + "<br/>" + "Relation: "+d.data.relation + "<br>" + "'Parent': "+theParent + "<br>" + "Code: "+d.data.code + "<br/>" + "CUI: "+d.data.cui + "<br/>" + "SemanticTypes: "+d.data.stys + "<br/>" + "'Children': "+d.nchildren).style("left", (divX - nodewidth) + "px").style("top", (divY) + "px").style("opacity", .85);   
+          }  
+        })
+       	.on("mouseout", function(d) {
+         		div.style("opacity", 0);})
+       	.on("contextmenu",function (d,i) { 
+          d3.event.preventDefault();
+  		    if(contextMenuShowing) {
+              d3.select(".popup").remove();
+  		    } else {
+  		        contextMenuShowing = true;
+          }
+          callpopup(d.data.code,d.data.term);
+          Code2Terms();
+	      })
+       	.on("touchmove",function (d,i) { // same as context menue - accounts for iOS swipe
+          d3.event.preventDefault();
+  		    if(contextMenuShowing) {
+              d3.select(".popup").remove();
+  		    } else {
+  		        contextMenuShowing = true;
+          }
+          callpopup(d.data.code,d.data.term);
+          Code2Terms();
+	      });
+
+        nodeEnter.append("circle")
+        .attr("r", 1e-6)
+        .style("fill", function(d) { return d == source ? "lightsteelblue" : "#fff"; })
+        .on("click", showCuiDef);
+
+    	function showCuiDef(d) {
+        //window.open("https://uts.nlm.nih.gov//metathesaurus.html?cui="+d.data.cui, "cui def");
+        if (d.data.cui == "" || d.data.definitions == "NONE") {document.getElementById('thecodedisplay').innerHTML = "No CUI or no definitons"; return;};
+        d3.queue()
+          .defer(Guesdt, 
+      			'{ "statements" : [ { "statement" : "MATCH (a:Concept)-->(c:Definition) WHERE a.CUI = \''+d.data.cui+'\' RETURN DISTINCT c.DEF as DEF, c.SAB as SAB LIMIT 30000" } ]}'
+          	)
+          .awaitAll(function(error, data) {
+            if (error) throw error; 
+            data = JSON.parse(data);
+            thetotaltext = "Definition(s) of CUI: "+d.data.cui+ " Concept: "
+            +d.data.concept+"<br>";
+            data.results[0].data.forEach(function(item) {
+            	// show the result set
+            	thetotaltext = thetotaltext + "["+item.row[1]+"] " + item.row[0] + "<br>";
+          	});
+            document.getElementById('thecodedisplay').innerHTML = thetotaltext;
+          });
+        }
+
+        nodeEnter.append("text")
+        .attr("class","termtext")
+        .attr("x", 7.4)
+        .attr("dy", "0.35em")
+        .attr("text-anchor", "start")
+        .text(function(d) { return d.data.term.slice(0,50); })
+        .style("fill", function(d) { return (((d.children != undefined) && (d.children.length > MANY)) || ((d._children != undefined) && (d._children.length > MANY))) ? "red" : "black"; })
+        .on("click", click);
+
+        nodeEnter.append("text")
+        .attr("class","relation")
+      	.attr("x", -10)
+      	.attr("dy", ".35em")
+      	.attr("text-anchor", "end")
+      	.text(function(d) { return d.data.relation.slice(0,17); })
+        .style("fill", function(d) { return (d.collapsedrelations != undefined) ? "blue" : "black"; })
+    	  .on("click", clickrelation);
+
+    	function clickrelation(d) {
+    		if (d.data.relation == vocabFROMcode(d.data.code)) { // relation is SAB, this is cross vocab relation
+          		window.open("http://www.nlm.nih.gov/research/umls/sourcereleasedocs/current/"+d.data.relation, "UMLS Source Information");
+    		} else {
+          childrentokeep = [];
+          if (d.collapsedrelations == undefined) { // this one has no collapsed relations, but other relations might be collapsed
+            d.collapsedrelations = [];
+            d.parent.children.forEach(function(s) {
+              if (d.data.relation == s.data.relation) {
+                d.collapsedrelations.push(s);
+                if (s == d) {
+                  childrentokeep.push(d);
+                }
+              } else {
+                childrentokeep.push(s);
+              }
+            })
+          } else {  // this one has collapsed relations, need to uncollapse them and also assemble parent's list of children
+            d.parent.children.forEach(function(s) {
+              if (s == d) {
+                d.collapsedrelations.forEach(function(x) {
+                  childrentokeep.push(x);
+                })
+              } else {
+                childrentokeep.push(s);
+              }
+            })
+            d.collapsedrelations = null;
+          }  
+          d.parent.children = childrentokeep;
+          update(d.parent);
+        }
+      }
+
+        var nodeUpdate = nodeEnter.merge(node);
+
+        // Transition to the proper position for the node
+        nodeUpdate.transition()
+        .duration(duration)
+        .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; });
+
+        nodeUpdate.select("circle")
+        .attr("r", 4.5)
+        .style("fill", function(d) { return d == source ? "steelblue" : d.replicas[0] != undefined ? "red" : "#fff"; });
+
+        nodeUpdate.select("text")
+        .style("fill-opacity", 1); 
+
+        nodeUpdate.select(".termtext").style("fill", function(d) { return (((d.children != undefined) && (d.children.length > MANY)) || ((d._children != undefined) && (d._children.length > MANY))) ? "red" : "black"; });
+
+        nodeUpdate.select(".relation").style("fill", function(d) { return (d.collapsedrelations != undefined) ? "blue" : "black"; });       
+
+        // Transition exiting nodes to the parent's new position.
+        var nodeExit = node.exit().transition()
+        .duration(duration)
+        .attr("transform", function(d) { return "translate(" + source.y + "," + source.x + ")"; })
+        .remove();
+
+        nodeExit.select("circle")
+        .attr("r", 1e-6);
+
+        nodeExit.select("text")
+        .style("fill-opacity", 1e-6);
+
+        // Update the links
+        var link = g.selectAll("path.link")
+        .data(links, function(d) { return d.id; });
+
+        // Enter any new links at the parent's previous position.
+        var  linkEnter = link.enter().insert("path", "g")
+        .attr("class", "link")
+        .attr("d", function(d) {
+          var o = {x: source.x0, y: source.y0}
+          return diagonal(o, o)
+        });
+
+        var linkUpdate = linkEnter.merge(link);
+
+        // Transition back to parent element position.
+        linkUpdate.transition()
+        .duration(duration)
+        .attr("d", function(d){ return diagonal(d, d.parent) });
+
+        // Remove any exiting links
+        var linkExit = link.exit().transition()
+        .duration(duration)
+        .attr("d", function(d) {
+          var o = {x: source.x, y: source.y}
+          return diagonal(o, o)
+        })
+        .remove();
+
+        // BEGIN Update REPLICA links 
+        links2 = [];
+        links.forEach(function(l)
+          {
+            l.replicas.forEach(function(x)
+            {
+              var q = Object.create(l);              
+              q.replica = x;
+              // l.replica = x; // This shouldn't work because of reference in list not new object in list
+              links2.push(q);
+            });
+          });
+
+        var link2 = g.selectAll("path.link2")
+        .data(links2, function(d) { return d.id; });  
+
+        // Enter any new links at the parent's previous position.
+        var  linkEnter2 = link2.enter().insert("path", "g")
+        .attr("class", "link2")
+        .attr("d", function(d) {
+          var o = {x: source.x0, y: source.y0}
+          return diagonal(o, o)
+        });
+
+        var linkUpdate2 = linkEnter2.merge(link2);
+
+        // Transition back to parent element position.
+        linkUpdate2.transition()
+        .duration(duration)
+        .attr("d", function(d){ return links.indexOf(d.replica) > -1 ? diagonal(d, d.replica) : diagonal(d, d) });
+
+        // Remove any exiting links
+        var linkExit2 = link2.exit().transition()
+        .duration(duration)
+        .attr("d", function(d) {
+          var o = {x: source.x, y: source.y}
+          return diagonal(o, o)
+        })
+        .remove();
+        // END Update REPLICA links
+
+        // Stash the old positions for transition.
+        nodes.forEach(function(d) {
+          d.x0 = d.x;
+          d.y0 = d.y;
+        });
+
+        // Creates a curved (diagonal) path from parent to the child nodes
+        function diagonal(s, d) {
+          path = `M ${s.y} ${s.x}
+          C ${(s.y + d.y) / 2} ${s.x},
+          ${(s.y + d.y) / 2} ${d.x},
+          ${d.y} ${d.x}`
+          return path
+        }
+      };
+
+      // toggle children on click
+      function click(d) {
+        if (d.children) { 
+
+// added some logging here for user (when user closes an open node)
+console.log(d.data.code + " COLLAPSED - LOGGED BELOW");
+parentCollapse = "{\"relation\":\"" + d.data.relation + "\",\"code\":\"" + d.data.code + "\",\"cui\":\"" + d.data.cui + "\",\"term\":\"" + d.data.term + "\",\"concept\":\"" + d.data.term + "\",\"stys\":\"" + d.data.stys + "\",\"children\":[";
+d.children.forEach(function(c) {
+	parentCollapse += JSON.stringify(c.data)+",";
+});
+parentCollapse = parentCollapse.slice(0,-1);
+parentCollapse += "]}";
+console.log("\n" + JSON.stringify(JSON.parse(parentCollapse),null,2));
+
+          d._children = d.children;
+          d.children = null;
+          update(d);
+        } else {
+          if (d._children) {
+          d.children = d._children;
+          d._children = null;
+          update(d);
+        } else {
+          updateData(d);
+          }
+        }
+      }
+
+    }); // this is the end of the awaitAll inside updateData
+    }
+  </script>
+</body>
+</meta>
