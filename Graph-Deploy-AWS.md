@@ -27,13 +27,12 @@ tar -xvzf neo4j.tar.gz -C neo4j
 sudo docker run --detach \
 --publish=7474:7474 --publish=7687:7687 \
 --publish=7473:7473 \
---volume=/home/ec2-user/neo4j/neo4j-community-3.5.5/data:/data \
---volume=/home/ec2-user/neo4j/neo4j-community-3.5.5/logs:/logs \
---volume=/home/ec2-user/neo4j/neo4j-community-3.5.5/import:/var/lib/neo4j/import \
---volume=/home/ec2-user/neo4j/neo4j-community-3.5.5/conf/:/var/lib/neo4j/conf/ \
+--volume=/home/ec2-user/neo4j/neo4j-4.2/data:/data \
+--volume=/home/ec2-user/neo4j/neo4j-4.2/logs:/logs \
+--volume=/home/ec2-user/neo4j/neo4j-4.2/conf/:/conf/ \
 --ulimit=nofile=40000:40000 \
 --name=myneo4j \
-neo4j
+neo4j:4.2
 ```
 
 More useful options here: https://neo4j.com/developer/docker-23/
