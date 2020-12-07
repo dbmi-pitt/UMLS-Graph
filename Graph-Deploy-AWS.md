@@ -29,6 +29,7 @@ sudo docker run --detach \
 --publish=7473:7473 \
 --volume=/home/ec2-user/neo4j/neo4j-4.2/data:/data \
 --volume=/home/ec2-user/neo4j/neo4j-4.2/logs:/logs \
+--volume=/home/ec2-user/neo4j/neo4j-4.2/plugins:/plugins \
 --volume=/home/ec2-user/neo4j/neo4j-4.2/conf/:/conf/ \
 --ulimit=nofile=40000:40000 \
 --name=myneo4j \
