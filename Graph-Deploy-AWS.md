@@ -22,7 +22,7 @@ tar -xvzf neo4j.tar.gz -C neo4j
 [ec2-user]$ sudo service docker start
 [ec2-user]$ sudo docker info
 ```
-## Some APIs may use APOC Core so installing to the neo4j implementation is recommended. 
+#### Some APIs may use APOC Core so installing to the neo4j implementation is recommended. 
 APOC Core can be installed by moving the APOC jar file from the $NEO4J_HOME/labs directory to the $NEO4J_HOME/plugins directory and restarting Neo4j. APOC Full contains all the procedures and functions included in APOC Core. You must not install both libraries.
 
 ```bash
