@@ -57,7 +57,7 @@ SELECT DISTINCT UMLS.MRCONSO.SUI as "SUI:ID", UMLS.MRCONSO.STR as "name" FROM UM
 
 ### Extract Term-relationships of Codes and save as CODE-SUIs.csv (with header):
 ```SQL
-SELECT DISTINCT SUI as ":END_ID", (SAB||' '||CODE) as ":START_ID", TTY as ":TYPE" from UMLS.MRCONSO where LAT = 'ENG' and SUPPRESS <> 'O';
+SELECT DISTINCT SUI as ":END_ID", (SAB||' '||CODE) as ":START_ID", TTY as ":TYPE", CUI as CUI from UMLS.MRCONSO where LAT = 'ENG' and SUPPRESS <> 'O';
 ```
 
 ### Extract Preferred Term-relationship of Concepts and save as CUI-SUIs.csv (with header):
@@ -88,12 +88,17 @@ SELECT DISTINCT ATUI as ":END_ID", (SAB||' '||CODE) as ":START_ID" from UMLS.MRS
 #### Delete all Neo4j data (from Neo4j home directory):
 ```bash
 bin/neo4j stop
-rm -rf data/*
+```
+edit the neo4j.conf file and add this line:
+```dbms.recovery.fail_on_missing_files=false```
+```bash
+rm -rf data/databases/*
+rm -rf data/transactions/*
 ```
 
 #### Put all csv files into standard neo4j import directory and then load into Neo4j via import tool from standard neo4j directory:
 ```bash
-bin/neo4j-admin import --nodes:Semantic "import/TUIs.csv" --nodes:Concept "import/CUIs.csv" --nodes:Code "import/CODEs.csv" --nodes:Term "import/SUIs.csv" --nodes:Definition "import/DEFs.csv" --nodes:NDC "import/NDCs.csv" --relationships:ISA_STY "import/TUIrel.csv" --relationships:STY "import/CUI-TUIs.csv" --relationships "import/CUI-CUIs.csv" --relationships "import/CUI-CODEs.csv" --relationships "import/CODE-SUIs.csv" --relationships:PREF_TERM "import/CUI-SUIs.csv" --relationships:DEF "import/DEFrel.csv" --relationships:NDC "import/NDCrel.csv" --ignore-missing-nodes
+bin/neo4j-admin import --nodes=Semantic="import/TUIs.csv" --nodes=Concept="import/CUIs.csv" --nodes=Code="import/CODEs.csv" --nodes=Term="import/SUIs.csv" --nodes=Definition="import/DEFs.csv" --nodes=NDC="import/NDCs.csv" --relationships=ISA_STY="import/TUIrel.csv" --relationships=STY="import/CUI-TUIs.csv" --relationships="import/CUI-CUIs.csv" --relationships=CODE="import/CUI-CODEs.csv" --relationships="import/CODE-SUIs.csv" --relationships=PREF_TERM="import/CUI-SUIs.csv" --relationships=DEF="import/DEFrel.csv" --relationships=NDC="import/NDCrel.csv" --skip-bad-relationships --skip-duplicate-nodes
 ```
 
 #### At this point, after much load feedback a clean load should show something like the following (due to --ignore-missing-nodes there will be a note about bad entries skipped and an import.report but this can be ignored):
@@ -107,30 +112,29 @@ Imported:
 ```bash
 bin/neo4j start
 ```
-
-#### SET CONSTRAINTS and INDEXES on everything (these must each be run in the bolt interface as a single line and response confirms success):
-```cypher
-CREATE CONSTRAINT ON (n:Semantic) ASSERT n.TUI IS UNIQUE
-CREATE CONSTRAINT ON (n:Semantic) ASSERT n.STN IS UNIQUE
-CREATE CONSTRAINT ON (n:Semantic) ASSERT n.DEF IS UNIQUE
-CREATE CONSTRAINT ON (n:Semantic) ASSERT n.name IS UNIQUE
-CREATE CONSTRAINT ON (n:Concept) ASSERT n.CUI IS UNIQUE
-CREATE CONSTRAINT ON (n:Code) ASSERT n.CodeID IS UNIQUE
-CREATE INDEX ON :Code(SAB)
-CREATE INDEX ON :Code(CODE)
-CREATE CONSTRAINT ON (n:Term) ASSERT n.SUI IS UNIQUE
-CREATE CONSTRAINT ON (n:Term) ASSERT n.name IS UNIQUE
-CREATE INDEX ON :Term(name_lc)
-CREATE CONSTRAINT ON (n:Definition) ASSERT n.ATUI IS UNIQUE
-CREATE INDEX ON :Definition(SAB)
-CREATE INDEX ON :Definition(DEF)
-CREATE CONSTRAINT ON (n:NDC) ASSERT n.ATUI IS UNIQUE
-CREATE CONSTRAINT ON (n:NDC) ASSERT n.NDC IS UNIQUE
-```
-
-### Remove orphan terms (again in cypher interface):
+### Remove orphan terms (in cypher interface).  Do this before you index the data to avoid indexing orphaned terms ("Deleted 512387 nodes"):
 ```cypher
 MATCH (n:Term) WHERE size((n)--())=0 DELETE (n)
+```
+
+#### SET CONSTRAINTS and INDEXES on most things:
+```cypher
+CREATE CONSTRAINT ON (n:Semantic) ASSERT n.TUI IS UNIQUE;
+CREATE CONSTRAINT ON (n:Semantic) ASSERT n.STN IS UNIQUE;
+CREATE CONSTRAINT ON (n:Semantic) ASSERT n.DEF IS UNIQUE;
+CREATE CONSTRAINT ON (n:Semantic) ASSERT n.name IS UNIQUE;
+CREATE CONSTRAINT ON (n:Concept) ASSERT n.CUI IS UNIQUE;
+CREATE CONSTRAINT ON (n:Code) ASSERT n.CodeID IS UNIQUE;
+CREATE INDEX FOR (n:Code) ON (n.SAB);
+CREATE INDEX FOR (n:Code) ON (n.CODE);
+CREATE CONSTRAINT ON (n:Term) ASSERT n.SUI IS UNIQUE;
+CREATE INDEX FOR (n:Term) ON (n.name);
+CREATE CONSTRAINT ON (n:Definition) ASSERT n.ATUI IS UNIQUE;
+CREATE INDEX FOR (n:Definition) ON (n.SAB);
+CREATE INDEX FOR (n:Definition) ON (n.DEF);
+CREATE CONSTRAINT ON (n:NDC) ASSERT n.ATUI IS UNIQUE;
+CREATE CONSTRAINT ON (n:NDC) ASSERT n.NDC IS UNIQUE;
+CALL db.index.fulltext.createNodeIndex("Term_name",["Term"],["name"]);
 ```
 
 #### In the neo4j bolt web interface test the initial import by counting nodes (should return near 15837031):
