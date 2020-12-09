@@ -34,9 +34,9 @@ SELECT DISTINCT CUI as "CUI:ID" from UMLS.MRCONSO where UMLS.MRCONSO.ISPREF = 'Y
 SELECT DISTINCT CUI AS ":START_ID", TUI AS ":END_ID" from UMLS.MRSTY;
 ```
 
-### Extract Relationships among CUIs as CUI-CUIs.csv (with header) and limit to ENGlish: 
+### Extract Relationships among CUIs as CUI-CUIs.csv (with header) and limit to ENGlish and no SIB relationships and no Obsolete: 
 ```SQL
-WITH SABlist as (SELECT DISTINCT SAB from UMLS.MRCONSO where UMLS.MRCONSO.LAT = 'ENG') SELECT DISTINCT CUI2 AS ":START_ID", CUI1 AS ":END_ID", (RELA||' '||REL) as ":TYPE", UMLS.MRREL.SAB, RELA, REL from UMLS.MRREL inner join SABlist on UMLS.MRREL.SAB = SABlist.SAB where UMLS.MRREL.SUPPRESS <> 'O' and CUI1 <> CUI2 and REL <> 'SIB';
+WITH SABlist as (SELECT DISTINCT SAB from UMLS.MRCONSO where UMLS.MRCONSO.LAT = 'ENG') SELECT DISTINCT CUI2 AS ":START_ID", CUI1 AS ":END_ID", NVL(RELA, REL) as ":TYPE", UMLS.MRREL.SAB from UMLS.MRREL inner join SABlist on UMLS.MRREL.SAB = SABlist.SAB where UMLS.MRREL.SUPPRESS <> 'O' and CUI1 <> CUI2 and REL <> 'SIB';
 ```
 
 ### Extract Code-nodes and save as CODEs.csv (with header):
