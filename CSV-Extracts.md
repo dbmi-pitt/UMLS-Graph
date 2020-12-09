@@ -1,13 +1,15 @@
 # UMLS-Graph
 
-SCRIPTS TO EXTRACT FROM NEPTUNE UMLS Relational and LOAD to UMLS Graph (using neo4j-community-3.5.5-unix.tar) - JCS Nov 30, 2017 - May 07, 2019
+SCRIPTS TO EXTRACT FROM NEPTUNE UMLS Relational and LOAD to UMLS Graph - JCS Nov 30, 2017 - Dec 09, 2020
 
-## V4: May 07, 2019 - Updated to neo4j 3.5.5 and UMLS2019AA
+### V5: Dec 9, 2020 - Updated to neo4j 4.2 with APOC Core (for WHEN clauses in APIs) and UMLS2020AB - removed Term .name_lc to use Neo4j 4.2 Lucene-based search - added back MTH NOCODE - removed the use of combined relationships of REL plus RELA and just use the most specific - changed schema to remove TTY between CUI and CODE - changed schema to add CUI to Code-Term relations for proper graph navigation in circumstances of ambiguous codes (multi-concept codes).
 
-## V3: Feb 19, 2018 - V3 Updated to neo4j 3.3.3 and added Term .name_lc for case in-sensitive search
+### V4: May 07, 2019 - Updated to neo4j 3.5.5 and UMLS2019AA
 
-## V2: Dec 16, 2017 - V2 Used the principle of creating a concise database that accounts for TTY.
-"SELECT DISTINCT" was used liberally (even where it was not needed, because of unique IDs in UMLS). For convenience, we allow to relationships fail on import, if the connecting nodes don't exist, due to leveraging the --ignore-missing-nodes flag.
+### V3: Feb 19, 2018 - V3 Updated to neo4j 3.3.3 and added Term .name_lc for case in-sensitive search
+
+### V2: Dec 16, 2017 - V2 Used the principle of creating a concise database that accounts for TTY.
+"SELECT DISTINCT" was used liberally (even where it was not needed, because of unique IDs in UMLS). For convenience, we allow to relationships fail on import, if the connecting nodes don't exist, due to leveraging the --skip-bad-relationships flag.
 
 ### Extract TUI-nodes and save as TUIs.csv (with header):
 ```SQL
