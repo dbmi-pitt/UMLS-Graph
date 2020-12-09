@@ -16,4 +16,4 @@ Graph-Query-Examples.md contains example useful Cypher queries for the complete 
 Graph-Deploy-AWS.md contains implementation instructions to build a Docker version of UMLS-Graph on an AWS EC2 instance (minimum 4 GB memory recommended).
 
 ## UI Javascript code
-Guesdt-V2.0.4.html is the UI code added to this repository 7/31/2019.
+Guesdt-X.X.X.html is the UI code deployed at guesdt.com after login.
