@@ -41,23 +41,23 @@ WITH SABlist as (SELECT DISTINCT SAB from UMLS.MRCONSO where UMLS.MRCONSO.LAT = 
 
 ### Extract Code-nodes and save as CODEs.csv (with header):
 ```SQL
-With CUIlist as (SELECT DISTINCT CUI from UMLS.MRCONSO where UMLS.MRCONSO.ISPREF = 'Y' AND UMLS.MRCONSO.STT = 'PF' AND UMLS.MRCONSO.TS = 'P' and UMLS.MRCONSO.LAT = 'ENG') SELECT DISTINCT (UMLS.MRCONSO.SAB||' '||UMLS.MRCONSO.CODE) as "CodeID:ID", UMLS.MRCONSO.SAB, UMLS.MRCONSO.CODE from UMLS.MRCONSO inner join CUIlist on UMLS.MRCONSO.CUI = CUIlist.CUI where UMLS.MRCONSO.LAT = 'ENG' and SUPPRESS <> 'O' and UMLS.MRCONSO.CODE <> 'NOCODE';
+With CUIlist as (SELECT DISTINCT CUI from UMLS.MRCONSO where UMLS.MRCONSO.ISPREF = 'Y' AND UMLS.MRCONSO.STT = 'PF' AND UMLS.MRCONSO.TS = 'P' and UMLS.MRCONSO.LAT = 'ENG') SELECT DISTINCT (UMLS.MRCONSO.SAB||' '||UMLS.MRCONSO.CODE) as "CodeID:ID", UMLS.MRCONSO.SAB, UMLS.MRCONSO.CODE from UMLS.MRCONSO inner join CUIlist on UMLS.MRCONSO.CUI = CUIlist.CUI where UMLS.MRCONSO.LAT = 'ENG' and SUPPRESS <> 'O';
 ```
 
 ### Extract CODE-relationships of CUIs and save as CUI-CODEs.csv (with header):
 ```SQL
-SELECT DISTINCT CUI as ":START_ID", (SAB||' '||CODE) as ":END_ID", TTY as ":TYPE" from UMLS.MRCONSO where LAT = 'ENG' and SUPPRESS <> 'O' and CODE <> 'NOCODE';
+SELECT DISTINCT CUI as ":START_ID", (SAB||' '||CODE) as ":END_ID" from UMLS.MRCONSO where LAT = 'ENG' and SUPPRESS <> 'O';
 ```
 
 ### Extract Term-nodes and save as SUIs.csv (with header):
 Again SUPPRESS is not used here but ENG language is - DISTINCT is essential. There are orphaned Terms because the query is not limiting to graph-included CUIs, CODEs OR Preferred Terms. At the end of this guide one runs a Cypher script to eliminate the orphans later.
 ```SQL
-SELECT DISTINCT UMLS.MRCONSO.SUI as "SUI:ID", UMLS.MRCONSO.STR as "name", LOWER(UMLS.MRCONSO.STR) as "name_lc" FROM UMLS.MRCONSO WHERE UMLS.MRCONSO.LAT = 'ENG'
+SELECT DISTINCT UMLS.MRCONSO.SUI as "SUI:ID", UMLS.MRCONSO.STR as "name" FROM UMLS.MRCONSO WHERE UMLS.MRCONSO.LAT = 'ENG';
 ```
 
 ### Extract Term-relationships of Codes and save as CODE-SUIs.csv (with header):
 ```SQL
-SELECT DISTINCT SUI as ":END_ID", (SAB||' '||CODE) as ":START_ID", TTY as ":TYPE" from UMLS.MRCONSO where LAT = 'ENG' and SUPPRESS <> 'O' and CODE <> 'NOCODE';
+SELECT DISTINCT SUI as ":END_ID", (SAB||' '||CODE) as ":START_ID", TTY as ":TYPE" from UMLS.MRCONSO where LAT = 'ENG' and SUPPRESS <> 'O';
 ```
 
 ### Extract Preferred Term-relationship of Concepts and save as CUI-SUIs.csv (with header):
