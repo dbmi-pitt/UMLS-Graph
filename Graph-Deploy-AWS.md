@@ -2,18 +2,18 @@
 
 Once you have a working database on Mac, and you've added your preferred user and deleted neo4j user, don't forget to go into neo4j configuration file and set read only database (one can copy auth and config files from previous), and may set larger heap sizes, and also remove used import csv files to reduce size. Then, go up one directory in Terminal and compress the neo4j directory:
 ```bash
-tar -cvzf neo4j.tar.gz neo4j-4.2
+tar -cvzf neo4j-4.2.tar.gz neo4j-4.2
 ```
 
 ```bash
 sftp -i ~/Desktop/YourKeyPair.pem ec2-user@ec2-54-205-5-136.compute-1.amazonaws.com
-put neo4j.tar.gz
+put neo4j-4.2.tar.gz
 ```
 
 ```bash
 ssh -i ~/Desktop/YourKeyPair.pem ec2-user@ec2-54-205-5-136.compute-1.amazonaws.com
 mkdir neo4j
-tar -xvzf neo4j.tar.gz -C neo4j
+tar -xvzf neo4j-4.2.tar.gz -C neo4j
 ```
 
 ```bash
