@@ -1,6 +1,6 @@
 # Graph-Deploy-AWS
 
-Once you have a working database on Mac, and you've added your preferred user and deleted neo4j user, don't forget to go into neo4j configuration file and set read only database (one can copy auth and config files from previous) and also remove used import csv files to reduce size. Then, go up one directory in Terminal and compress the neo4j directory:
+Once you have a working database on Mac, and you've added your preferred user and deleted neo4j user, don't forget to go into neo4j configuration file and set read only database (one can copy auth and config files from previous), and may set larger heap sizes, and also remove used import csv files to reduce size. Then, go up one directory in Terminal and compress the neo4j directory:
 ```bash
 tar -cvzf neo4j.tar.gz neo4j-4.2
 ```
