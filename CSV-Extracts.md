@@ -65,7 +65,7 @@ SELECT DISTINCT SUI as ":END_ID", (SAB||' '||CODE) as ":START_ID", TTY as ":TYPE
 SELECT DISTINCT CUI as ":START_ID", SUI as ":END_ID" from UMLS.MRCONSO where UMLS.MRCONSO.ISPREF = 'Y' AND UMLS.MRCONSO.STT = 'PF' AND UMLS.MRCONSO.TS = 'P' and UMLS.MRCONSO.LAT = 'ENG';
 ```
 
-### Extract Definition-nodes and save as DEFs.csv (with header) - BACKLOG: should limit to ENGlish like did with CUI-CUIs: these appear mostly in SABs WHO and MSH with further letters in the SAB designating the language - can do this extraction with the restriction such as "WHERE MRDEF.SAB STARTS WITH 'MSH' AND a.SAB <> 'MSH'" and similar substituting WHO.
+### Extract Definition-nodes and save as DEFs.csv (with header) - BACKLOG: should limit to ENGlish like did with CUI-CUIs: these appear mostly in SABs MDR and MSH with further letters in the SAB designating the language - can do this extraction with the restriction such as "WHERE MRDEF.SAB STARTS WITH 'MSH' AND a.SAB <> 'MSH'" and similar substituting WHO.
 ```SQL
 With CUIlist as (SELECT DISTINCT CUI from UMLS.MRCONSO where UMLS.MRCONSO.ISPREF = 'Y' AND UMLS.MRCONSO.STT = 'PF' AND UMLS.MRCONSO.TS = 'P' and UMLS.MRCONSO.LAT = 'ENG') SELECT DISTINCT UMLS.MRDEF.ATUI as "ATUI:ID", UMLS.MRDEF.SAB, UMLS.MRDEF.DEF FROM UMLS.MRDEF inner join CUIlist on UMLS.MRDEF.CUI = CUIlist.CUI where SUPPRESS <> 'O';
 ```
