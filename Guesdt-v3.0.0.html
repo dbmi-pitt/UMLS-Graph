@@ -366,40 +366,47 @@
 	   Code2Terms(); 
     };
 
-	  // Init vocab (as relation) and code as root of the viz tree and intitiate updating
+	// Init vocab (as relation) and code as root of the viz tree and intitiate updating
 	  d3.queue()
-      .defer(Guesdt,
+      		.defer(Guesdt,
       		'{ "statements" : [ { "statement" : "MATCH (d:Term)<-[:PREF_TERM]-(a:Concept)-->(c:Code) WHERE c.CodeID = \''+code+'\' RETURN DISTINCT a.CUI as CUI, d.name AS TERM ORDER BY TERM LIMIT 10000" } ]}'
     		)
-	    .awaitAll(function(error, data) {
+      		.awaitAll(function(error, data) {
 	      if (error) throw error; 
 	      data = JSON.parse(data);
           data=data.results[0].data;
-	      if (data[0] == undefined) { alert("Selected code in URL is not valid. If you wish to remember the invalid code then select and copy the following: " + code + " . Click Close to restart with default code.");location.href = location.pathname;};
-	      if (data[1] != undefined) {
-	      	cuilist = "";
-	      	i = 0;
-			data.forEach(function(item) {
-				i++;
-				cuilist += "" + i + "\t" + item.row[1] + "\n";
-	      	});
-	      	console.log(cuilist);
-	      	cuichoice = prompt("Selected Code \"" + code + "\" has more than than one Concept. Choose one of its Concepts to start the tree by entering the integer next to that Concept below (long lists continue in console.log):\n" + cuilist,1); 
-	      		if ((Number.isInteger(parseInt(cuichoice,10)) == false) || (cuichoice > Object.keys(data).length) || (cuichoice < 1)) {
-	      			cuichoice = 1;
-	      		};
-	      		data[0] = data[cuichoice - 1];
-	      	};
-
-	       // assign the data to a hierarchy using parent-child relationships
-	       smallTree = {"relation":vocab,"code":code,"cui":data[0].row[0],"term":data[0].row[1],"concept":data[0].row[1],"stys":[],"children": []}
-	       root = d3.hierarchy(smallTree, function(d) {
-	       	return d.children;
-	        });
-	       updateData(root);
+          // Address case of invalid start code
+	      if (data[0] == undefined) { alert("Selected code in URL is not valid. If you wish to remember the invalid code then select and copy the following: " + code + " . Click Close to restart with default code.");location.href = location.pathname;}
+          // Address case of multi-concept codes as a start layer
+          nchildren = 0;
+          if (data[1] != undefined) {
+            // assign the data to a hierarchy using parent-child relationships
+            smallTree = {"relation":code,"code":code,"cui":"none","term":"This code references more than one concept.","concept":"none","stys":[],"children": []}
+            data.forEach(function(item) {
+                therow = {"relation":vocab,"code":code,"cui":item.row[0],"term":item.row[1],"concept":item.row[1],"stys":[],"children": []}
+                smallTree.children.push(therow);
+                nchildren = nchildren + 1;
+            smallTree.children.sort(function(a, b) { return d3.ascending(a.relation+a.term, b.relation+b.term); });
+             });
+          } else {
+              smallTree = {"relation":vocab,"code":code,"cui":data[0].row[0],"term":data[0].row[1],"concept":data[0].row[1],"stys":[],"children": []}
+          }
+          // start the hierarchy
+          root = d3.hierarchy(smallTree, function(d) {
+              return d.children;
+               });
+          // Graft the new children on to the main hierarchy and identify replicas
+          root.nchildren = nchildren;
+          root.descendants().slice(1).forEach(function(d) {
+            d.parent = root;
+            d.height = 0;
+            d.depth =  1;
+            d.replicas = [];
+          });
+          updateData(root);
       });
   // END Setup and Initialization
-
+	  
     function updateData(getData) {
     	// Collect the list of relations and codes from the current node in all directions
       nchildren = 0;
