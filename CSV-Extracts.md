@@ -98,7 +98,7 @@ rm -rf data/transactions/*
 
 #### Put all csv files into standard neo4j import directory and then load into Neo4j via import tool from standard neo4j directory:
 ```bash
-bin/neo4j-admin import --nodes=Semantic="import/TUIs.csv" --nodes=Concept="import/CUIs.csv" --nodes=Code="import/CODEs.csv" --nodes=Term="import/SUIs.csv" --nodes=Definition="import/DEFs.csv" --nodes=NDC="import/NDCs.csv" --relationships=ISA_STY="import/TUIrel.csv" --relationships=STY="import/CUI-TUIs.csv" --relationships="import/CUI-CUIs.csv" --relationships=CODE="import/CUI-CODEs.csv" --relationships="import/CODE-SUIs.csv" --relationships=PREF_TERM="import/CUI-SUIs.csv" --relationships=DEF="import/DEFrel.csv" --relationships=NDC="import/NDCrel.csv" --skip-bad-relationships --skip-duplicate-nodes
+bin/neo4j-admin import --nodes=Semantic="import/TUIs.csv" --nodes=Concept="import/CUIs.csv" --nodes=Code="import/CODEs.csv" --nodes=Term="import/SUIs.csv" --nodes=Definition="import/DEFs.csv" --relationships=ISA_STY="import/TUIrel.csv" --relationships=STY="import/CUI-TUIs.csv" --relationships="import/CUI-CUIs.csv" --relationships=CODE="import/CUI-CODEs.csv" --relationships="import/CODE-SUIs.csv" --relationships=PREF_TERM="import/CUI-SUIs.csv" --relationships=DEF="import/DEFrel.csv" --skip-bad-relationships --skip-duplicate-nodes
 ```
 
 #### At this point, after much load feedback a clean load should show something like the following (due to --ignore-missing-nodes there will be a note about bad entries skipped and an import.report but this can be ignored):
