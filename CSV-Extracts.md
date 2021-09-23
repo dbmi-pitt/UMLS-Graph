@@ -2,7 +2,7 @@
 
 SCRIPTS TO EXTRACT FROM NEPTUNE UMLS Relational and LOAD to UMLS Graph - JCS Nov 30, 2017 - Dec 09, 2020
 
-V6: Sept 23, 2021 - the precise queries here are not all valid/updated, but they are valid in the related Jupyter Notebook in this repository - specifically the current documentation here has NDC codes as a distinct item, whereas they are true Codes in the proper Notebook. This is why the "neo4j/import" command no longer refers to NDC-related csv files.
+V6: Sept 23, 2021 - the precise queries here are not all valid/updated, but they are valid in the related Jupyter Notebook in this repository - specifically the current documentation here has NDC codes as a distinct item, whereas they are true Codes in the proper Notebook. This is why the "neo4j/import" command no longer refers to NDC-related csv files and why the NDC-related constraints and indexes have been removed here.
 
 V5: Dec 9, 2020 - Updated to neo4j 4.2 with APOC Core (for WHEN clauses in APIs) and UMLS2020AB - removed Term .name_lc to use Neo4j 4.2 Lucene-based search - added back MTH NOCODE - removed the use of combined relationships of REL plus RELA and just use the most specific - changed schema to remove TTY between CUI and CODE - changed schema to add CUI to Code-Term relations for proper graph navigation in circumstances of ambiguous codes (multi-concept codes).
 
@@ -134,8 +134,6 @@ CREATE INDEX FOR (n:Term) ON (n.name);
 CREATE CONSTRAINT ON (n:Definition) ASSERT n.ATUI IS UNIQUE;
 CREATE INDEX FOR (n:Definition) ON (n.SAB);
 CREATE INDEX FOR (n:Definition) ON (n.DEF);
-CREATE CONSTRAINT ON (n:NDC) ASSERT n.ATUI IS UNIQUE;
-CREATE CONSTRAINT ON (n:NDC) ASSERT n.NDC IS UNIQUE;
 CALL db.index.fulltext.createNodeIndex("Term_name",["Term"],["name"]);
 ```
 
