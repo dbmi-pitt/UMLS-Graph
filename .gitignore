@@ -1,1 +1,4 @@
-
+#ignore connection strings
+conn_string.txt
+#ignore CSVs
+*.csv
