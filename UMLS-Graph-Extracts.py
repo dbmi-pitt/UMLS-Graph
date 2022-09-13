@@ -52,6 +52,14 @@ df.to_csv(path_or_buf='TUIs.csv', header=True, index=False)
 print('TUIs.csv: {0} records exported'.format(str(df.size)))
 
 # ------
+# TUIrel.csv
+query = "WITH Semantics as (SELECT DISTINCT UI from {0}.SRDEF WHERE RT = 'STY') SELECT DISTINCT UI3, UI1 FROM {0}.SRSTRE1 INNER JOIN Semantics ON {0}.SRSTRE1.UI1 = Semantics.UI WHERE UI2 = 'T186'".format(args.umlsversion)
+df = pd.read_sql_query(query, engine)
+df.columns =[':END_ID', ':START_ID']
+df.to_csv(path_or_buf='TUIrel.csv', header=True, index=False)
+print('TUIrel.csv: {0} records exported'.format(str(df.size)))
+
+# ------
 # CUIs.csv
 # Concepts from the Metathesaurus that have preferred terms in English.
 
