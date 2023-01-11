@@ -27,10 +27,17 @@ parser.add_argument("umlsversion", help="version of the UMLS refresh")
 args = parser.parse_args()
 
 # Connect to Neptune.
-_ = open('conn_string.txt', 'r');
-conn_string = _.read().replace('\n', '');
-_.close()
-engine = sqlalchemy.create_engine(conn_string, arraysize=100000, max_identifier_length=128)
+# conn_string.txt file contains one line like: oracle+cx_oracle://user:pass@server-address:port/database
+try:
+    _ = open('conn_string.txt', 'r');
+    conn_string = _.read().replace('\n', '');
+    _.close()
+    engine = sqlalchemy.create_engine(conn_string, arraysize=100000, max_identifier_length=128)
+except FileNotFoundError:
+    err = 'Missing connection string file in the application directory. The file should be named conn_string.txt and ' \
+          'contain one line in format: oracle+cx_oracle://<user>:<password>@<server-address:port/database>. '
+    raise SystemExit(err)
+
 pd.set_option('display.max_colwidth', None)
 
 # Check for a schema that matches the argument.
@@ -119,7 +126,7 @@ print('CUI-CODEs.csv: export started')
 query = "SELECT DISTINCT CUI, (SAB||' '||CODE) FROM {0}.MRCONSO WHERE LAT = 'ENG' AND SUPPRESS <> 'O'".format(args.umlsversion)
 df = pd.read_sql_query(query, engine)
 df.columns =[':START_ID', ':END_ID']
-df.to_csv(path_or_buf='UMLS-Graph-Extracts/CUI-CODEs.csv', header=True, index=False)
+df.to_csv(path_or_buf='CUI-CODEs.csv', header=True, index=False)
 print('CUI-CODEs.csv: {0} records exported'.format(str(df.size)))
 
 # Keep a copy for use by NDCs later
